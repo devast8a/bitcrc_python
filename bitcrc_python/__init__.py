@@ -1,10 +1,7 @@
 import bits
 
 class BitCrc:
-    def __init__(self, polynomial, initialValue = None):
-        # Order of polynomial
-        order = 32
-
+    def __init__(self, order, polynomial, initialValue = 0, xorOut = 0):
         # The amount to shift right to move the top byte to the bottom byte
         self.SHIFT_TOP_BYTE     = order - 8
         # Mask out everything but the top bit
@@ -15,8 +12,9 @@ class BitCrc:
         self.MASK_SHIFT_BY_BYTE = bits.setN(order - 8)
 
         self.polynomial   = polynomial
-        self.initialValue = initialValue or 0
+        self.initialValue = initialValue
         self.table        = self.create_table()
+        self.xorOut       = xorOut
 
     def create_table(self):
         """
@@ -78,4 +76,4 @@ class BitCrc:
             if topBit:
                 crc ^= self.polynomial
 
-        return crc
+        return crc ^ self.xorOut
