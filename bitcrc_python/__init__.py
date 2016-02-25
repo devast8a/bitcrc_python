@@ -39,6 +39,28 @@ class BitCrc:
 
         return crc
 
+    def update_byte(self, initial, byte):
+        """
+            Calculate a checksum from an initial checksum and a byte of data
+        """
+        topByte = (initial >> self.SHIFT_TOP_BYTE) & 0xFF
+        initial = (initial & self.MASK_SHIFT_BY_BYTE) << 8
+        return initial ^ self.table[topByte ^ byte]
+
+    def update_bits(self, initial, byte, length):
+        """
+            Calculate a checksum from an initial checksum and a byte of data.
+            Only uses a number of bits specified by length.
+        """
+        for bit in range(length):
+            topBit = (byte & 0x80) ^ ((initial >> self.SHIFT_TOP_BYTE) & 0x80)
+            initial = (initial & self.MASK_SHIFT_BY_BIT) << 1
+            byte <<= 1
+
+            if topBit:
+                initial ^= self.polynomial
+        return initial
+
     def generate(self, data, length = None):
         """
             Return a checksum for a given list of bytes
@@ -49,37 +71,26 @@ class BitCrc:
 
         if length == None:
             # Length in bytes
-            bytes = len(data)
+            totalBytes = len(data)
             # Remaining length in bits
-            bits = 0
+            remainingBits = 0
+        elif length > len(data) * 8:
+            raise ValueError("length is longer than the length of given data")
         else:
-            length = min(len(data) * 8, length)
-            lastByte = data[(length / 8)]
-            bytes = length / 8
-            bits = length % 8
+            totalBytes = length / 8
+            remainingBits = length % 8
 
         offset = 0
         crc = self.initialValue
-        table = self.table
 
-        while offset < bytes:
-            # Get the top byte of crc
-            topByte = (crc >> self.SHIFT_TOP_BYTE) & 0xFF
-            crc = (crc & self.MASK_SHIFT_BY_BYTE) << 8
-            crc ^= table[topByte ^ data[offset]]
+        while offset < totalBytes:
+            crc = self.update_byte(crc, data[offset])
             offset += 1
 
-        # Handle message lengths that are a non-multiple of 8
-        #   by processing the remaining bits.
-        for bit in range(bits):
-            topBit = (lastByte & 0x80) ^ ((crc >> self.SHIFT_TOP_BYTE) & 0x80)
-            crc = (crc & self.MASK_SHIFT_BY_BIT) << 1
-            lastByte <<= 1
-
-            if topBit:
-                crc ^= self.polynomial
+        if remainingBits > 0:
+            crc = self.update_bits(crc, data[totalBytes], remainingBits)
 
         if self.reverseOut:
-            crc = reverse(crc, self.order)
+            crc = bits.reverse(crc, self.order)
 
         return crc ^ self.xorOut
