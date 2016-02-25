@@ -16,15 +16,15 @@ class BitCrc:
 
         self.polynomial   = polynomial
         self.initialValue = initialValue or 0
-        self.table        = self.createTable()
+        self.table        = self.create_table()
 
-    def createTable(self):
+    def create_table(self):
         """
             Return a precomputed CRC table
         """
-        return [self.createTableEntry(byte) for byte in range(0,256)]
+        return [self.create_table_entry(byte) for byte in range(0,256)]
 
-    def createTableEntry(self, byte):
+    def create_table_entry(self, byte):
         """
             Return a CRC table entry for a given control byte
         """
