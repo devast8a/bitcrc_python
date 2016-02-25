@@ -1,0 +1,8 @@
+# Build output
+build/
+dist/
+*.egg-info
+
+# Compiled python files
+*.pyc
+*.pyo
