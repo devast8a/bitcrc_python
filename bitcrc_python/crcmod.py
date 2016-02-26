@@ -6,9 +6,7 @@ import math
 import bits
 import struct
 
-def mkCrcFun(poly, initCrc=None, rev=True, xorOut=0):
-    # reverse isn't supported at the moment
-
+def mkGenerator(poly, initCrc=None, rev=True, xorOut=0):
     # Find order and unset leading bit
     order = bits.find_last_set(poly) - 1
     poly ^= 1 << order
@@ -17,7 +15,7 @@ def mkCrcFun(poly, initCrc=None, rev=True, xorOut=0):
     if initCrc == None:
         initCrc = bits.setN(order)
 
-    crc_generator = BitCrc(
+    gen = BitCrc(
         order,
         poly,
         initialValue = initCrc,
@@ -25,42 +23,45 @@ def mkCrcFun(poly, initCrc=None, rev=True, xorOut=0):
         reverseData = rev
     )
 
+    return gen
+
+
+def mkCrcFun(poly, initCrc=None, rev=True, xorOut=0):
+    gen = mkGenerator(poly, initCrc, rev, xorOut)
     def calculate(data):
-        return crc_generator.generate(data)
+        return gen.generate(data)
 
     return calculate
 
 class Crc(object):
-    def __init__(self, poly, initCrc=0, rev=True, xorOut=0):
-        order = bits.find_last_set(poly) - 1
-        poly ^= 1 << order
+    def init_from_gen(self, gen):
+        self.gen = gen
+        self.digest_size = math.ceil(gen.order / 4)
+        self.crcValue = gen.initialValue ^ gen.xorOut
 
-        self.crc_generator = BitCrc(
-            order,
-            poly,
-            initialValue = initCrc,
-            xorOut = xorOut
-        )
-
-        self.digest_size = math.ceil(order / 4)
-        self.crcValue = initCrc ^ xorOut
+    def __init__(self, poly, initCrc=None, rev=True, xorOut=0):
+        self.init_from_gen(mkGenerator(poly, initCrc, rev, xorOut))
 
     def new(self, arg = None):
         other = Crc.__new__(Crc)
-        other.crc_generator = self.crc_generator
-        other.crcValue = self.crc_generator.initialValue
+        other.init_from_gen(self.gen)
+        return other
 
     def copy(self):
         other = self.new()
         other.crcValue = self.crcValue
+        return other
 
     def update(self, data):
         if type(data) == str:
             data = struct.unpack("%dB" % len(data), data)
 
-        self.crcValue ^= self.crc_generator.xorOut
+        self.crcValue ^= self.gen.xorOut
 
         for byte in data:
-            self.crcValue = self.crc_generator.update_byte(self.crcValue, byte)
+            if self.gen.reverseData:
+                self.crcValue = self.gen.update_byte_r(self.crcValue, byte)
+            else:
+                self.crcValue = self.gen.update_byte(self.crcValue, byte)
 
-        self.crcValue ^= self.crc_generator.xorOut
+        self.crcValue ^= self.gen.xorOut
