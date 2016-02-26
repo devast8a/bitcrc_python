@@ -6,12 +6,16 @@ import math
 import bits
 import struct
 
-def mkCrcFun(poly, initCrc=0, rev=True, xorOut=0):
+def mkCrcFun(poly, initCrc=None, rev=True, xorOut=0):
     # reverse isn't supported at the moment
 
     # Find order and unset leading bit
     order = bits.find_last_set(poly) - 1
     poly ^= 1 << order
+
+    # crcmod defaults initCrc to all bits set
+    if initCrc == None:
+        initCrc = bits.setN(order)
 
     crc_generator = BitCrc(
         order,
