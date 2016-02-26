@@ -20,6 +20,9 @@ class BitCrc:
         self.reverseOut   = reverseOut
         self.reverseData  = reverseData
 
+        if self.reverseData:
+            self.revpolynomial = bits.reverse(polynomial, order)
+
         self.table        = self.create_table()
 
     def create_table(self):
@@ -63,7 +66,7 @@ class BitCrc:
 
     def update_byte_r(self, initial, byte):
         topByte = initial & 0xFF
-        initial = initial >> 8
+        initial >>= 8
         return initial ^ self.table[topByte ^ byte]
 
     def update_bits(self, initial, byte, length):
@@ -78,6 +81,20 @@ class BitCrc:
 
             if topBit:
                 initial ^= self.polynomial
+        return initial
+
+    def update_bits_r(self, initial, byte, length):
+        """
+            Calculate a checksum from an initial checksum and a byte of data.
+            Only uses a number of bits specified by length.
+        """
+        for bit in range(length):
+            topBit = (byte ^ initial) & 0x01
+            initial >>= 1
+            byte >>= 1
+
+            if topBit:
+                initial ^= self.revpolynomial
         return initial
 
     def generate(self, data, length = None):
@@ -106,15 +123,22 @@ class BitCrc:
         offset = 0
         crc = self.initialValue
 
-        while offset < totalBytes:
-            if self.reverseData:
+        if self.reverseData:
+            # Reversed data algorithms
+            while offset < totalBytes:
                 crc = self.update_byte_r(crc, data[offset])
-            else:
-                crc = self.update_byte(crc, data[offset])
-            offset += 1
+                offset += 1
 
-        if remainingBits > 0:
-            crc = self.update_bits(crc, data[totalBytes], remainingBits)
+            if remainingBits > 0:
+                crc = self.update_bits_r(crc, data[totalBytes], remainingBits)
+        else
+            while offset < totalBytes:
+                crc = self.update_byte(crc, data[offset])
+                offset += 1
+
+            if remainingBits > 0:
+                crc = self.update_bits(crc, data[totalBytes], remainingBits)
+
 
         if self.reverseOut:
             crc = bits.reverse(crc, self.order)
