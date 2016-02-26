@@ -2,7 +2,7 @@ import bits
 import struct
 
 class BitCrc:
-    def __init__(self, order, polynomial, initialValue = 0, xorOut = 0, reverseOut = False):
+    def __init__(self, order, polynomial, initialValue = 0, xorOut = 0, reverseOut = False, reverse = False):
 
         # The amount to shift right to move the top byte to the bottom byte
         self.SHIFT_TOP_BYTE     = order - 8
@@ -16,15 +16,28 @@ class BitCrc:
         self.order        = order
         self.polynomial   = polynomial
         self.initialValue = initialValue
-        self.table        = self.create_table()
         self.xorOut       = xorOut
         self.reverseOut   = reverseOut
+        self.reverse      = reverse
+
+        self.table        = self.create_table()
 
     def create_table(self):
         """
             Return a precomputed CRC table
         """
-        return [self.create_table_entry(byte) for byte in range(0,256)]
+        table = [self.create_table_entry(byte) for byte in range(0,256)]
+
+        if not self.reverse:
+            return table
+
+        # Instead of having to reverse each byte in the message, we can instead
+        #  reverse each entry in the lookup table. We have to make sure to reverse
+        #  the lookup index as well.
+        revtable = range(256)
+        for i in range(256):
+            revtable[bits.reverse(i, 8)] = bits.reverse(table[i], self.order)
+        return revtable
 
     def create_table_entry(self, byte):
         """
@@ -46,6 +59,11 @@ class BitCrc:
         """
         topByte = (initial >> self.SHIFT_TOP_BYTE) & 0xFF
         initial = (initial & self.MASK_SHIFT_BY_BYTE) << 8
+        return initial ^ self.table[topByte ^ byte]
+
+    def update_byte_r(self, initial, byte):
+        topByte = initial & 0xFF
+        initial = initial >> 8
         return initial ^ self.table[topByte ^ byte]
 
     def update_bits(self, initial, byte, length):
@@ -89,13 +107,13 @@ class BitCrc:
         crc = self.initialValue
 
         while offset < totalBytes:
-            crc = self.update_byte(crc, data[offset])
+            crc = self.update_byte_r(crc, data[offset])
             offset += 1
 
         if remainingBits > 0:
             crc = self.update_bits(crc, data[totalBytes], remainingBits)
 
-        if self.reverseOut:
+        if self.reverse:
             crc = bits.reverse(crc, self.order)
 
         return crc ^ self.xorOut
