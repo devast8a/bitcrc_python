@@ -113,7 +113,7 @@ class BitCrc:
         if remainingBits > 0:
             crc = self.update_bits(crc, data[totalBytes], remainingBits)
 
-        if self.reverse:
+        if self.reverseOut:
             crc = bits.reverse(crc, self.order)
 
         return crc ^ self.xorOut
