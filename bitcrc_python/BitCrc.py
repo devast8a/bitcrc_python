@@ -107,7 +107,10 @@ class BitCrc:
         crc = self.initialValue
 
         while offset < totalBytes:
-            crc = self.update_byte_r(crc, data[offset])
+            if self.reverseData:
+                crc = self.update_byte_r(crc, data[offset])
+            else:
+                crc = self.update_byte(crc, data[offset])
             offset += 1
 
         if remainingBits > 0:
