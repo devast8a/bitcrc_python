@@ -17,7 +17,8 @@ def mkCrcFun(poly, initCrc=0, rev=True, xorOut=0):
         order,
         poly,
         initialValue = initCrc,
-        xorOut = xorOut
+        xorOut = xorOut,
+        reverseData = rev
     )
 
     def calculate(data):
