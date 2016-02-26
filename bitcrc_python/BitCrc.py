@@ -2,7 +2,7 @@ import bits
 import struct
 
 class BitCrc:
-    def __init__(self, order, polynomial, initialValue = 0, xorOut = 0, reverseOut = False, reverse = False):
+    def __init__(self, order, polynomial, initialValue = 0, xorOut = 0, reverseOut = False, reverseData = False):
 
         # The amount to shift right to move the top byte to the bottom byte
         self.SHIFT_TOP_BYTE     = order - 8
@@ -18,7 +18,7 @@ class BitCrc:
         self.initialValue = initialValue
         self.xorOut       = xorOut
         self.reverseOut   = reverseOut
-        self.reverse      = reverse
+        self.reverseData  = reverseData
 
         self.table        = self.create_table()
 
@@ -28,7 +28,7 @@ class BitCrc:
         """
         table = [self.create_table_entry(byte) for byte in range(0,256)]
 
-        if not self.reverse:
+        if not self.reverseData:
             return table
 
         # Instead of having to reverse each byte in the message, we can instead
