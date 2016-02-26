@@ -1,4 +1,5 @@
 import bits
+import struct
 
 class BitCrc:
     def __init__(self, order, polynomial, initialValue = 0, xorOut = 0, reverseOut = False):
@@ -68,6 +69,10 @@ class BitCrc:
             You may optionally specify the length of the message (in bits),
             otherwise the entire list of bytes will be used.
         """
+
+        # Not sure if there's a better way of unpacking byte string
+        if type(data) == str:
+            data = struct.unpack("%dB" % len(data), data)
 
         if length == None:
             # Length in bytes
