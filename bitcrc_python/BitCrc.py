@@ -131,7 +131,7 @@ class BitCrc:
 
             if remainingBits > 0:
                 crc = self.update_bits_r(crc, data[totalBytes], remainingBits)
-        else
+        else:
             while offset < totalBytes:
                 crc = self.update_byte(crc, data[offset])
                 offset += 1
